@@ -34,6 +34,19 @@ public class DataInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (initialEmail == null || initialEmail.isBlank()) {
+            throw new IllegalStateException(
+                "APP_ADMIN_EMAIL environment variable is not set. " +
+                "Application cannot start without an admin email."
+            );
+        }
+        if (initialPassword == null || initialPassword.isBlank()) {
+            throw new IllegalStateException(
+                "APP_ADMIN_PASSWORD environment variable is not set. " +
+                "Application cannot start without an admin password."
+            );
+        }
+
         if (adminUserRepository.findByEmail(initialEmail).isEmpty()) {
             AdminUser admin = new AdminUser();
             admin.setEmail(initialEmail);
@@ -42,9 +55,7 @@ public class DataInitializer implements ApplicationRunner {
             admin.setRole(AdminRole.ADMIN);
             admin.setActive(true);
             adminUserRepository.save(admin);
-
             log.info("Initial admin user created: {}", initialEmail);
-            log.warn("Default admin password is in use — change it via APP_ADMIN_PASSWORD env variable in production!");
         } else {
             log.debug("Admin user already exists, skipping initialization.");
         }

@@ -13,6 +13,8 @@ const NAV = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const email = tokenStore.getEmail() ?? "";
+  const initial = email.charAt(0).toUpperCase();
 
   function handleLogout() {
     tokenStore.clear();
@@ -55,8 +57,14 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Çıkış */}
-      <div className="px-3 py-5 border-t border-border">
+      {/* Kullanıcı + Çıkış */}
+      <div className="px-3 py-5 border-t border-border space-y-3">
+        <div className="flex items-center gap-3 px-3">
+          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center shrink-0">
+            <span className="font-sans text-sm font-medium text-white">{initial}</span>
+          </div>
+          <span className="font-sans text-sm text-muted truncate">{email}</span>
+        </div>
         <button
           onClick={handleLogout}
           className="w-full text-left px-3 py-2.5 font-sans text-sm text-muted hover:text-foreground transition-colors"

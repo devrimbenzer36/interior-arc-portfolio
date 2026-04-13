@@ -34,7 +34,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @ManyToOne olan coverImage ve koleksiyonlar tek entity üzerinde fetch edildiğinden
      * in-memory pagination uyarısı oluşmaz.
      */
-    @EntityGraph(attributePaths = {"coverImage", "tags", "materials"})
+    @EntityGraph(attributePaths = {"coverImage"})
     Optional<Project> findBySlugAndStatus(String slug, ProjectStatus status);
 
     /**
@@ -68,7 +68,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     /**
      * Admin detail view için id ile tek proje — tags/materials da yüklenir.
      */
-    @EntityGraph(attributePaths = {"coverImage", "tags", "materials"})
+    @EntityGraph(attributePaths = {"coverImage"})
     @Query("SELECT p FROM Project p WHERE p.id = :id")
     Optional<Project> findByIdWithDetails(@Param("id") Long id);
 

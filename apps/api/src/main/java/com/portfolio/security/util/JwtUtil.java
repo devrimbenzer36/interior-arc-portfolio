@@ -29,7 +29,7 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private static final String DEV_SECRET_PREFIX = "dev-secret-key";
+    private static final int MIN_SECRET_LENGTH = 32;
 
     private final SecretKey signingKey;
     private final long expirationMs;
@@ -38,11 +38,19 @@ public class JwtUtil {
             @Value("${app.jwt.secret}") String secret,
             @Value("${app.jwt.expiration-ms}") long expirationMs
     ) {
-        if (secret.startsWith(DEV_SECRET_PREFIX)) {
-            log.warn("JWT is using the dev default secret. " +
-                     "Set the APP_JWT_SECRET environment variable before deploying to production!");
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                "APP_JWT_SECRET environment variable is not set. " +
+                "Application cannot start without a JWT secret."
+            );
         }
-        // Keys.hmacShaKeyFor throws WeakKeyException if key < 256 bits — fast-fail at startup
+        if (secret.length() < MIN_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                "APP_JWT_SECRET must be at least " + MIN_SECRET_LENGTH +
+                " characters (256 bits). Current length: " + secret.length()
+            );
+        }
+        // Keys.hmacShaKeyFor throws WeakKeyException if key < 256 bits — secondary guard
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }

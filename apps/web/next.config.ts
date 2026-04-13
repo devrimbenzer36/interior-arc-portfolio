@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     // seçiliyordu — bu ayar sorunu düzeltir.
     root: path.resolve(__dirname),
   },
+  devIndicators: false,
 };
 
 export default nextConfig;

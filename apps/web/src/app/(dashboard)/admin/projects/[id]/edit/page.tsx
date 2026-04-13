@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ProjectForm, { type ProjectFormPayload } from "@/components/admin/projects/ProjectForm";
+import ProjectGallery from "@/components/admin/projects/ProjectGallery";
 import { adminGetProjectById, adminUpdateProject, adminSetCoverImage } from "@/lib/api/projects";
 import type { ProjectDetail } from "@/types/api";
 
@@ -33,12 +34,16 @@ export default function EditProjectPage() {
       category: payload.category,
     });
 
-    // Yeni kapak görseli yüklendiyse ayrı endpoint ile bağla
     if (payload.newCoverMedia) {
       await adminSetCoverImage(projectId, payload.newCoverMedia.id);
     }
 
     router.push("/admin/projects");
+  }
+
+  async function reloadProject() {
+    const updated = await adminGetProjectById(projectId);
+    setProject(updated);
   }
 
   if (loading) {
@@ -81,6 +86,14 @@ export default function EditProjectPage() {
           initialValues={project}
           onSubmit={handleSubmit}
           submitLabel="Kaydet"
+        />
+      </div>
+
+      <div className="bg-surface border border-border p-6">
+        <ProjectGallery
+          projectId={projectId}
+          images={project.images ?? []}
+          onUpdate={reloadProject}
         />
       </div>
     </div>

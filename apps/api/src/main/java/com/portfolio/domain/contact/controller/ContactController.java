@@ -1,10 +1,12 @@
 package com.portfolio.domain.contact.controller;
 
+import com.portfolio.common.exception.BusinessException;
 import com.portfolio.common.response.ApiResponse;
 import com.portfolio.domain.contact.dto.request.SendContactMessageRequest;
 import com.portfolio.domain.contact.dto.response.ContactMessageResponse;
 import com.portfolio.domain.contact.enums.ContactStatus;
 import com.portfolio.domain.contact.service.ContactService;
+import com.portfolio.security.ratelimit.RateLimiterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class ContactController {
 
     private final ContactService contactService;
+    private final RateLimiterService rateLimiter;
 
     // ── Public ────────────────────────────────────────────────────────────
 
@@ -32,8 +36,14 @@ public class ContactController {
             @Valid @RequestBody SendContactMessageRequest request,
             HttpServletRequest httpRequest
     ) {
-        String ipAddress = resolveClientIp(httpRequest);
-        contactService.sendMessage(request, ipAddress);
+        String ip = httpRequest.getRemoteAddr();
+        if (!rateLimiter.isContactAllowed(ip)) {
+            throw new BusinessException(
+                "Too many requests. Please try again later.",
+                HttpStatus.TOO_MANY_REQUESTS
+            );
+        }
+        contactService.sendMessage(request, ip);
         return ResponseEntity.ok(ApiResponse.ok("Your message has been received. We will get back to you soon."));
     }
 
@@ -80,16 +90,4 @@ public class ContactController {
         return ResponseEntity.ok(ApiResponse.ok("Message deleted"));
     }
 
-    // ── Private helper ────────────────────────────────────────────────────
-
-    /**
-     * Proxy arkasında gerçek IP'yi almak için X-Forwarded-For header'ına bakar.
-     */
-    private String resolveClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

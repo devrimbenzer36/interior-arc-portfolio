@@ -19,7 +19,7 @@ export default function ProjectCard({ project, aspect = "normal" }: Props) {
           <img
             src={project.coverImageUrl}
             alt={project.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
           />
         ) : (
           /* Görsel yoksa initial placeholder */

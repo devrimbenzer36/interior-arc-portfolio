@@ -2,6 +2,7 @@ import Link from "next/link";
 import Nav from "@/components/public/Nav";
 import ProjectCard from "@/components/public/ProjectCard";
 import ContactForm from "@/components/public/ContactForm";
+import Logo from "@/components/public/Logo";
 import { getPublishedProjects } from "@/lib/api/projects";
 
 export const metadata = {
@@ -19,36 +20,65 @@ export default async function HomePage() {
       <Nav />
 
       {/* ── Hero ──────────────────────────────────────────────────── */}
-      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-16">
-        <p className="font-sans text-xs text-muted tracking-[0.25em] uppercase mb-8">
-          Interior Design
-        </p>
+      <section className="relative h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden">
 
-        <h1 className="font-serif text-6xl sm:text-7xl lg:text-[6.5rem] text-foreground leading-[1.05] max-w-4xl">
-          Mekânlar
-          <br />
-          <em className="not-italic text-accent">Hikâye</em> Anlatır
-        </h1>
+        {/* ── Arka plan katmanları ── */}
 
-        <div className="w-12 h-px bg-accent mx-auto my-10" />
+        {/* 1. Büyük monogram — mimari yay, belirgin ama narin */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+          <Logo variant="mark" className="w-[110vmin] text-foreground" style={{ opacity: 0.055 }} />
+        </div>
 
-        <p className="font-sans text-sm text-muted max-w-sm leading-relaxed tracking-wide">
-          Her projeyi özgün bir anlatıya dönüştürüyor,
-          fonksiyon ile estetiği bir araya getiriyoruz.
-        </p>
+        {/* 2. Yatay dekoratif çizgiler — mimari his */}
+        <div className="absolute inset-0 pointer-events-none select-none flex flex-col justify-between py-24 px-8 opacity-20">
+          <div className="w-full h-px bg-foreground/30" />
+          <div className="w-full h-px bg-foreground/30" />
+          <div className="w-full h-px bg-foreground/30" />
+        </div>
 
-        <Link
-          href="/projects"
-          className="mt-10 inline-flex items-center gap-2 font-sans text-xs tracking-[0.2em] uppercase text-foreground border border-foreground px-6 py-3 hover:bg-foreground hover:text-background transition-colors"
-        >
-          Projeleri Keşfet
-          <span aria-hidden>→</span>
-        </Link>
+        {/* 3. Köşe aksan çizgileri */}
+        <div className="absolute top-24 left-8 pointer-events-none select-none opacity-25">
+          <div className="w-12 h-px bg-accent mb-2" />
+          <div className="w-6 h-px bg-accent" />
+        </div>
+        <div className="absolute bottom-16 right-8 pointer-events-none select-none opacity-25">
+          <div className="w-6 h-px bg-accent mb-2" />
+          <div className="w-12 h-px bg-accent" />
+        </div>
 
-        {/* Aşağı kaydır işareti */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2 text-muted">
-          <span className="font-sans text-[10px] tracking-widest uppercase">Kaydır</span>
-          <div className="w-px h-10 bg-border" />
+        {/* ── İçerik ── */}
+        <div className="relative z-10">
+          <p className="font-sans text-xs text-muted tracking-[0.3em] uppercase mb-8">
+            Interior Design
+          </p>
+
+          <h1 className="font-serif text-6xl sm:text-7xl lg:text-[6.5rem] text-foreground leading-[1.05] max-w-4xl">
+            Mekânlar
+            <br />
+            <em className="not-italic text-accent">Hikâye</em> Anlatır
+          </h1>
+
+          <div className="w-12 h-px bg-accent mx-auto my-10" />
+
+          <p className="font-sans text-sm text-muted max-w-sm leading-relaxed tracking-wide">
+            Her projeyi özgün bir anlatıya dönüştürüyor,
+            fonksiyon ile estetiği bir araya getiriyoruz.
+          </p>
+
+          <Link
+            href="/projects"
+            className="mt-10 inline-flex items-center gap-2 font-sans text-xs tracking-[0.2em] uppercase text-foreground border border-foreground px-6 py-3 hover:bg-foreground hover:text-background transition-colors"
+          >
+            Projeleri Keşfet
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
+
+        {/* Alt orta: marka adı küçük */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-none select-none">
+          <p className="font-sans text-[9px] text-muted/40 tracking-[0.4em] uppercase">
+            Elif Benzer — Interior Arc
+          </p>
         </div>
       </section>
 

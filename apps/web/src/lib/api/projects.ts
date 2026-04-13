@@ -80,3 +80,25 @@ export async function adminSetCoverImage(
 export async function adminDeleteProject(id: number): Promise<void> {
   await apiClient.delete(`/api/v1/admin/projects/${id}`);
 }
+
+export async function adminPublishProject(id: number): Promise<void> {
+  await apiClient.patch(`/api/v1/admin/projects/${id}/publish`);
+}
+
+export async function adminUnpublishProject(id: number): Promise<void> {
+  await apiClient.patch(`/api/v1/admin/projects/${id}/unpublish`);
+}
+
+export async function adminAddProjectImage(
+  projectId: number,
+  mediaFileId: number
+): Promise<void> {
+  await apiClient.post(`/api/v1/admin/projects/${projectId}/images/${mediaFileId}`);
+}
+
+export async function adminRemoveProjectImage(
+  projectId: number,
+  imageId: number
+): Promise<void> {
+  await apiClient.delete(`/api/v1/admin/projects/${projectId}/images/${imageId}`);
+}

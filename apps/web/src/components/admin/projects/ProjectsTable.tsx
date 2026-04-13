@@ -9,11 +9,24 @@ import type { Project } from "@/types/api";
 interface Props {
   projects: Project[];
   onDelete: (id: number) => Promise<void>;
+  onPublish: (id: number) => Promise<void>;
+  onUnpublish: (id: number) => Promise<void>;
 }
 
-export default function ProjectsTable({ projects, onDelete }: Props) {
+export default function ProjectsTable({ projects, onDelete, onPublish, onUnpublish }: Props) {
   const [target, setTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  async function handleTogglePublish(p: Project) {
+    setTogglingId(p.id);
+    try {
+      if (p.status === "PUBLISHED") await onUnpublish(p.id);
+      else await onPublish(p.id);
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   async function handleConfirm() {
     if (!target) return;
@@ -77,6 +90,17 @@ export default function ProjectsTable({ projects, onDelete }: Props) {
               {/* Eylemler */}
               <td className="py-3.5 text-right">
                 <div className="flex items-center justify-end gap-4">
+                  <button
+                    onClick={() => handleTogglePublish(p)}
+                    disabled={togglingId === p.id}
+                    className="font-sans text-xs text-muted hover:text-foreground disabled:opacity-40 transition-colors"
+                  >
+                    {togglingId === p.id
+                      ? "…"
+                      : p.status === "PUBLISHED"
+                      ? "Yayından Al"
+                      : "Yayınla"}
+                  </button>
                   <Link
                     href={`/admin/projects/${p.id}/edit`}
                     className="font-sans text-xs text-accent hover:text-accent-hover transition-colors"

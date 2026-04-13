@@ -123,12 +123,12 @@ export default function ImageUploader({ displayUrl, onChange }: Props) {
     return (
       <div className="space-y-2">
         {/* Önizleme */}
-        <div className="relative aspect-video w-full max-w-sm overflow-hidden bg-surface-muted border border-border">
+        <div className="relative w-full max-w-sm bg-surface-muted border border-border flex items-center justify-center" style={{ minHeight: "160px" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={shownSrc}
             alt="Kapak görseli"
-            className="w-full h-full object-cover"
+            className="max-w-full max-h-64 object-contain"
           />
 
           {/* Yükleniyor overlay */}

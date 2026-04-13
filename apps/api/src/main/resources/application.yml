@@ -58,14 +58,16 @@ app:
     version: v1
     base-path: /api/v1
   jwt:
-    # Prod'da env variable ile override et: APP_JWT_SECRET
-    # Minimum 256-bit (32 karakter) olmalı — HS256 için
-    secret: ${APP_JWT_SECRET:dev-secret-key-must-be-at-least-256-bits-long-for-hs256}
+    # Zorunlu — env variable set edilmeden uygulama başlamaz.
+    # Minimum 32 karakter (256-bit) olmalı — HS256 için.
+    # Örnek üretim: openssl rand -base64 48
+    secret: ${APP_JWT_SECRET}
     expiration-ms: 86400000   # 24 saat (ms)
   admin:
-    # İlk admin hesabı için. Prod'da: APP_ADMIN_EMAIL / APP_ADMIN_PASSWORD env variable'ları
-    initial-email: ${APP_ADMIN_EMAIL:admin@portfolio.com}
-    initial-password: ${APP_ADMIN_PASSWORD:admin123}  # Prod'da mutlaka değiştir!
+    # Zorunlu — env variable set edilmeden uygulama başlamaz.
+    # APP_ADMIN_EMAIL ve APP_ADMIN_PASSWORD env variable'larını set et.
+    initial-email: ${APP_ADMIN_EMAIL}
+    initial-password: ${APP_ADMIN_PASSWORD}
 
 ---
 # DEV profili

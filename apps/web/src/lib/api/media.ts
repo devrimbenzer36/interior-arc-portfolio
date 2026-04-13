@@ -13,7 +13,8 @@ export async function uploadMedia(file: File): Promise<MediaFileResponse> {
 
   const { data } = await apiClient.post<ApiResponse<MediaFileResponse>>(
     "/api/v1/admin/media/upload",
-    form
+    form,
+    { headers: { "Content-Type": undefined } }
   );
 
   if (!data.data) throw new Error(data.message ?? "Upload failed");

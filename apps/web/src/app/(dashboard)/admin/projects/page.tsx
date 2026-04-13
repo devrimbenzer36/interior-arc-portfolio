@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { adminGetProjects, adminDeleteProject } from "@/lib/api/projects";
+import { adminGetProjects, adminDeleteProject, adminPublishProject, adminUnpublishProject } from "@/lib/api/projects";
 import ProjectsTable from "@/components/admin/projects/ProjectsTable";
 import type { Project, PageResponse } from "@/types/api";
 
@@ -69,7 +69,12 @@ export default function ProjectsPage() {
             </button>
           </div>
         ) : (
-          <ProjectsTable projects={data?.content ?? []} onDelete={handleDelete} />
+          <ProjectsTable
+            projects={data?.content ?? []}
+            onDelete={handleDelete}
+            onPublish={async (id) => { await adminPublishProject(id); await load(page); }}
+            onUnpublish={async (id) => { await adminUnpublishProject(id); await load(page); }}
+          />
         )}
       </div>
 
