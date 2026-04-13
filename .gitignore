@@ -1,0 +1,38 @@
+# ── Java / Maven ────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+
+# ── Node / Next.js ──────────────────────────────────────────
+node_modules/
+.next/
+out/
+.cache/
+npm-debug.log*
+yarn-error.log*
+
+# ── Environment / Secrets ───────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+
+# ── IDE / Tool configs ──────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.claude/
+
+# ── OS ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Uploads (local dev dosyaları, prod'da S3'te olacak) ─────
+uploads/*
+!uploads/.gitkeep

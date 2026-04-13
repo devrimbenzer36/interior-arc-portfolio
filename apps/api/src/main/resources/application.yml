@@ -1,0 +1,122 @@
+spring:
+  profiles:
+    active: dev
+
+  application:
+    name: portfolio-api
+
+  # Jackson: null field'ları response'a dahil etme
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+  # JPA
+  jpa:
+    open-in-view: false   # Lazy loading sorunlarını gizlememesi için kapalı
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  # Flyway
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # File upload limitleri
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 50MB
+
+# API
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# Swagger UI — sadece dev'de açık olacak
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+# Uygulama bazlı config
+app:
+  storage:
+    type: local                             # local | s3 (Phase 2)
+    local:
+      upload-dir: uploads                   # proje root'una göre relatif
+      base-url: http://localhost:8080/files
+  api:
+    version: v1
+    base-path: /api/v1
+  jwt:
+    # Prod'da env variable ile override et: APP_JWT_SECRET
+    # Minimum 256-bit (32 karakter) olmalı — HS256 için
+    secret: ${APP_JWT_SECRET:dev-secret-key-must-be-at-least-256-bits-long-for-hs256}
+    expiration-ms: 86400000   # 24 saat (ms)
+  admin:
+    # İlk admin hesabı için. Prod'da: APP_ADMIN_EMAIL / APP_ADMIN_PASSWORD env variable'ları
+    initial-email: ${APP_ADMIN_EMAIL:admin@portfolio.com}
+    initial-password: ${APP_ADMIN_PASSWORD:admin123}  # Prod'da mutlaka değiştir!
+
+---
+# DEV profili
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/portfolio_db
+    username: portfolio_user
+    password: portfolio_pass
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate   # Flyway yönetiyor, Hibernate sadece doğrular
+
+logging:
+  level:
+    com.portfolio: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
+
+---
+# PROD profili
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+
+# Swagger prod'da kapalı
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    com.portfolio: INFO
+    root: WARN

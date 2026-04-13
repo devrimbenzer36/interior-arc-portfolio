@@ -1,0 +1,8 @@
+-- ============================================================
+-- Admin Kullanıcı Seed — V2__seed_admin_user.sql
+--
+-- Tablo V1'de oluşturuldu. İlk admin kaydı uygulama başlarken
+-- DataInitializer.java tarafından programatik olarak eklenir.
+-- Şifre: application.yml'deki app.admin.initial-password
+--        (env: APP_ADMIN_PASSWORD ile override edilebilir)
+-- ============================================================

@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/*
+ * Tasarım token'ları — Tailwind v4 @theme bloğu.
+ *
+ * Bu değişkenler hem CSS custom property hem de Tailwind utility olarak kullanılır.
+ * Örn: --color-accent → bg-accent, text-accent, border-accent
+ *      --font-serif   → font-serif
+ *
+ * Renk mantığı: interior design estetiği — sıcak beyaz zemin, warm charcoal metin,
+ * taupe accent (koyu lacivert veya parlak renk değil).
+ */
+
+@theme {
+  /* ── Fontlar ──────────────────────────────────────────────── */
+  --font-sans:  var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), ui-serif, Georgia, serif;
+
+  /* ── Renkler ──────────────────────────────────────────────── */
+  --color-background: #FAFAF8;   /* sıcak beyaz */
+  --color-foreground: #1C1C1A;   /* warm charcoal — pure black değil */
+  --color-muted:      #6B6560;   /* ikincil metin */
+  --color-border:     #E8E5E0;   /* subtle warm gray */
+  --color-accent:     #8B7355;   /* warm taupe — imza rengi */
+  --color-accent-hover: #7A6347;
+
+  /* Admin panel için nötr surface'lar */
+  --color-surface:    #FFFFFF;
+  --color-surface-muted: #F5F4F2;
+}
+
+/* ── Base stiller ──────────────────────────────────────────── */
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Heading'lerde serif font — interior design editorial hissi */
+h1, h2, h3 {
+  font-family: var(--font-serif);
+}
