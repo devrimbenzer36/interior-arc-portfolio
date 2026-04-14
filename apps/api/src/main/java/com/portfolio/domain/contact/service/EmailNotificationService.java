@@ -1,6 +1,7 @@
 package com.portfolio.domain.contact.service;
 
 import com.portfolio.domain.contact.dto.request.SendContactMessageRequest;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -40,6 +41,11 @@ public class EmailNotificationService {
 
     public EmailNotificationService(RestClient.Builder restClientBuilder) {
         this.restClient = restClientBuilder.build();
+    }
+
+    @PostConstruct
+    public void init() {
+        log.warn("[EMAIL] v2 — Resend HTTP API aktif, SMTP yok");
     }
 
     @Async("auditExecutor")
