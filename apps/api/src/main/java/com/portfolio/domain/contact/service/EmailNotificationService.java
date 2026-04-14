@@ -44,6 +44,10 @@ public class EmailNotificationService {
     @Async("auditExecutor")
     public void sendContactNotification(SendContactMessageRequest request) {
         log.warn("[EMAIL] sendContactNotification started for: {}", request.getEmail());
+        if (resendApiKey == null || resendApiKey.isBlank() || "not-configured".equals(resendApiKey)) {
+            log.warn("[EMAIL] RESEND_API_KEY not configured — skipping notification");
+            return;
+        }
         try {
             List<String> recipients = Arrays.stream(recipientsRaw.split(","))
                     .map(String::trim)
