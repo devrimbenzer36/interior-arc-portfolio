@@ -53,7 +53,8 @@ app:
     type: local                             # local | s3 (Phase 2)
     local:
       upload-dir: uploads                   # proje root'una göre relatif
-      base-url: http://localhost:8080/files
+      # Prod: APP_STORAGE_BASE_URL=https://your-railway-app.railway.app/files
+      base-url: ${APP_STORAGE_BASE_URL:http://localhost:8080/files}
   api:
     version: v1
     base-path: /api/v1
@@ -68,6 +69,13 @@ app:
     # APP_ADMIN_EMAIL ve APP_ADMIN_PASSWORD env variable'larını set et.
     initial-email: ${APP_ADMIN_EMAIL}
     initial-password: ${APP_ADMIN_PASSWORD}
+  notification:
+    # Contact form bildirimleri bu adreslere gönderilir (virgülle ayrılmış)
+    recipients: elifdavulcu8@gmail.com,devrimbenzer@gmail.com
+  cors:
+    # Dev: virgülle ayrılmış localhost adresler
+    # Prod: CORS_ALLOWED_ORIGINS env var'ı set et (örn: https://elifbenzer.com,https://www.elifbenzer.com)
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
 
 ---
 # DEV profili
@@ -86,6 +94,18 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: validate   # Flyway yönetiyor, Hibernate sadece doğrular
+
+  # Gmail SMTP — dev'de test için
+  # MAIL_USERNAME : Gmail adresiniz (gönderen)
+  # MAIL_APP_PASSWORD : Gmail → Güvenlik → Uygulama Şifresi
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_APP_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
 
 logging:
   level:
@@ -110,6 +130,15 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: validate
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_APP_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
 
 # Swagger prod'da kapalı
 springdoc:

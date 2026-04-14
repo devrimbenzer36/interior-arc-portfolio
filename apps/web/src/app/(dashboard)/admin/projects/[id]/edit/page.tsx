@@ -6,6 +6,7 @@ import Link from "next/link";
 import ProjectForm, { type ProjectFormPayload } from "@/components/admin/projects/ProjectForm";
 import ProjectGallery from "@/components/admin/projects/ProjectGallery";
 import { adminGetProjectById, adminUpdateProject, adminSetCoverImage } from "@/lib/api/projects";
+import { revalidateProjectCache } from "@/lib/revalidate";
 import type { ProjectDetail } from "@/types/api";
 
 export default function EditProjectPage() {
@@ -38,6 +39,8 @@ export default function EditProjectPage() {
       await adminSetCoverImage(projectId, payload.newCoverMedia.id);
     }
 
+    // Public sayfaların önbelleğini temizle — değişiklikler hemen görünsün
+    await revalidateProjectCache();
     router.push("/admin/projects");
   }
 

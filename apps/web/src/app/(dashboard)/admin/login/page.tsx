@@ -49,8 +49,8 @@ export default function LoginPage() {
         {/* Başlık */}
         <div className="text-center mb-10">
           <h1 className="font-serif text-4xl text-foreground mb-2">Portfolio</h1>
-          <p className="font-sans text-muted text-xs tracking-widest uppercase">
-            Admin Paneli
+          <p className="font-sans text-muted text-xs tracking-widest">
+            ADMIN PANELİ
           </p>
         </div>
 

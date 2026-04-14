@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ProjectForm, { type ProjectFormPayload } from "@/components/admin/projects/ProjectForm";
 import { adminCreateProject, adminSetCoverImage } from "@/lib/api/projects";
+import { revalidateProjectCache } from "@/lib/revalidate";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -17,10 +18,10 @@ export default function NewProjectPage() {
       coverImageId: payload.newCoverMedia?.id,
     });
 
-    // Kapak görseli create request'te gönderildi; setCoverImage gerekmez.
-    // (Ama backend coverImageId'yi CreateProjectRequest içinde zaten işliyor.)
     void project;
 
+    // Public sayfaların önbelleğini temizle — yeni proje hemen görünsün
+    await revalidateProjectCache();
     router.push("/admin/projects");
   }
 

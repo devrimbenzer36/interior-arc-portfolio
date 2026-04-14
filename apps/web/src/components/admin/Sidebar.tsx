@@ -26,8 +26,8 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-7 border-b border-border">
         <span className="font-serif text-xl text-foreground">Portfolio</span>
-        <p className="font-sans text-[10px] text-muted tracking-widest uppercase mt-0.5">
-          Admin
+        <p className="font-sans text-[10px] text-muted tracking-widest mt-0.5">
+          ADMIN
         </p>
       </div>
 

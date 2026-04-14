@@ -35,6 +35,7 @@ public class CreateProjectRequest {
     @Size(max = 500, message = "Short description must not exceed 500 characters")
     private String shortDesc;
 
+    @Size(max = 50000, message = "Detailed story must not exceed 50,000 characters")
     private String detailedStory;
 
     @NotNull(message = "Category is required")
@@ -63,8 +64,10 @@ public class CreateProjectRequest {
     private List<Long> imageIds = new ArrayList<>();
 
     @NotNull(message = "Tags list must not be null")
-    private List<String> tags = new ArrayList<>();
+    @Size(max = 15, message = "At most 15 tags allowed")
+    private List<@Size(max = 50, message = "Each tag must not exceed 50 characters") String> tags = new ArrayList<>();
 
     @NotNull(message = "Materials list must not be null")
-    private List<String> materials = new ArrayList<>();
+    @Size(max = 20, message = "At most 20 materials allowed")
+    private List<@Size(max = 100, message = "Each material must not exceed 100 characters") String> materials = new ArrayList<>();
 }

@@ -1,5 +1,8 @@
 package com.portfolio.domain.contact.controller;
 
+import com.portfolio.audit.enums.AuditAction;
+import com.portfolio.audit.enums.AuditEntityType;
+import com.portfolio.audit.service.AuditLogService;
 import com.portfolio.common.exception.BusinessException;
 import com.portfolio.common.response.ApiResponse;
 import com.portfolio.domain.contact.dto.request.SendContactMessageRequest;
@@ -18,6 +21,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +32,7 @@ public class ContactController {
 
     private final ContactService contactService;
     private final RateLimiterService rateLimiter;
+    private final AuditLogService auditLog;
 
     // ── Public ────────────────────────────────────────────────────────────
 
@@ -37,13 +43,24 @@ public class ContactController {
             HttpServletRequest httpRequest
     ) {
         String ip = httpRequest.getRemoteAddr();
+
         if (!rateLimiter.isContactAllowed(ip)) {
             throw new BusinessException(
-                "Too many requests. Please try again later.",
-                HttpStatus.TOO_MANY_REQUESTS
+                    "Too many requests. Please try again later.",
+                    HttpStatus.TOO_MANY_REQUESTS
             );
         }
+
         contactService.sendMessage(request, ip);
+
+        // E-posta loglanır (takip için meşru), mesaj içeriği loglanmaz (gizlilik)
+        auditLog.record(AuditAction.CONTACT_FORM_SUBMITTED)
+                .entity(AuditEntityType.CONTACT_MESSAGE, null)
+                .ip(ip)
+                .userAgent(httpRequest.getHeader("User-Agent"))
+                .meta("senderEmail", request.getEmail())
+                .save();
+
         return ResponseEntity.ok(ApiResponse.ok("Your message has been received. We will get back to you soon."));
     }
 
@@ -80,14 +97,36 @@ public class ContactController {
             @PathVariable Long id,
             @RequestParam ContactStatus status
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(contactService.updateStatus(id, status)));
+        ContactMessageResponse response = contactService.updateStatus(id, status);
+
+        // READ durumuna geçişi logla — mesajın okunduğunu izlemek için
+        if (status == ContactStatus.READ) {
+            auditLog.record(AuditAction.CONTACT_MESSAGE_READ)
+                    .entity(AuditEntityType.CONTACT_MESSAGE, id)
+                    .actor(currentAdminEmail())
+                    .save();
+        }
+
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @DeleteMapping("/api/v1/admin/contact/{id}")
     @Operation(summary = "[Admin] Delete message")
     public ResponseEntity<ApiResponse<Void>> deleteMessage(@PathVariable Long id) {
         contactService.deleteMessage(id);
+
+        auditLog.record(AuditAction.CONTACT_MESSAGE_DELETED)
+                .entity(AuditEntityType.CONTACT_MESSAGE, id)
+                .actor(currentAdminEmail())
+                .save();
+
         return ResponseEntity.ok(ApiResponse.ok("Message deleted"));
     }
 
+    // ── Private helpers ───────────────────────────────────────────────────
+
+    private String currentAdminEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null) ? auth.getName() : null;
+    }
 }

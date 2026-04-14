@@ -23,10 +23,23 @@ const cormorant = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   title: {
-    default: "Portfolio",
-    template: "%s | Portfolio",
+    default: "Elif Benzer — Interior Arc",
+    template: "%s | Interior Arc",
   },
-  description: "Interior design portfolio",
+  description:
+    "İç mekân tasarımında özgün hikayeler. Elif Benzer imzalı konut, ticari ve ofis tasarım projeleri.",
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    siteName: "Interior Arc",
+    title: "Elif Benzer — Interior Arc",
+    description:
+      "İç mekân tasarımında özgün hikayeler. Elif Benzer imzalı konut, ticari ve ofis tasarım projeleri.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

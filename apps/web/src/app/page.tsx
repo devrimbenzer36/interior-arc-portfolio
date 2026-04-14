@@ -48,8 +48,8 @@ export default async function HomePage() {
 
         {/* ── İçerik ── */}
         <div className="relative z-10">
-          <p className="font-sans text-xs text-muted tracking-[0.3em] uppercase mb-8">
-            Interior Design
+          <p className="font-sans text-xs text-muted tracking-[0.3em] mb-8">
+            INTERIOR DESIGN
           </p>
 
           <h1 className="font-serif text-6xl sm:text-7xl lg:text-[6.5rem] text-foreground leading-[1.05] max-w-4xl">
@@ -76,8 +76,8 @@ export default async function HomePage() {
 
         {/* Alt orta: marka adı küçük */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-none select-none">
-          <p className="font-sans text-[9px] text-muted/40 tracking-[0.4em] uppercase">
-            Elif Benzer — Interior Arc
+          <p className="font-sans text-[9px] text-muted/40 tracking-[0.4em]">
+            ELİF BENZER — INTERIOR ARC
           </p>
         </div>
       </section>
