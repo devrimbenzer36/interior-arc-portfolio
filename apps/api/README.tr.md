@@ -1,7 +1,7 @@
 # Portfolio API — Türkçe Dokümantasyon
 
-İç mimar portfolyo platformu için Spring Boot backend.
-Ziyaretçilere açık bir portfolyo sitesi ve projeleri, görselleri ve iletişim mesajlarını yönetmek için bir admin panel API'si sunar.
+İç mimarlık portfolyosu için Spring Boot backend.
+Ziyaretçilere açık bir portfolyo sitesi ve projeleri, görselleri, iletişim mesajlarını yönetmek için bir admin panel API'si sunar.
 
 ---
 
@@ -10,7 +10,8 @@ Ziyaretçilere açık bir portfolyo sitesi ve projeleri, görselleri ve iletişi
 - Yayınlanan iç mimarlık **projelerini** ziyaretçilere sunar (filtreleme, sayfalama, slug ile erişim)
 - **Görselleri** yönetir: yükleme, galeriye ekleme, kapak görseli atama
 - **Admin panel API'si** sunar: proje oluşturma/düzenleme, yayınlama, öne çıkarma
-- **İletişim formu mesajlarını** takip eder (YENİ → OKUNDU → YANITLANDI)
+- **İletişim formu mesajlarını** takip eder (YENİ → OKUNDU → YANITLANDI) ve yeni mesajlarda e-posta bildirimi gönderir
+- **Audit log** tutar: tüm admin ve public aksiyonlar izlenebilir, değiştirilemez kayıtlarla saklanır
 
 ---
 
@@ -36,12 +37,18 @@ Entity          — Durum + domain metodları. İş kuralları burada yaşar.
 
 ```
 com.portfolio
-├── config/                  # SecurityConfig, OpenApiConfig
+├── config/                  # SecurityConfig, AsyncConfig, OpenApiConfig
 ├── security/                # JWT auth altyapısı
 │   ├── filter/              # JwtAuthFilter (OncePerRequestFilter)
 │   ├── handler/             # AuthEntryPoint (401), AccessDeniedHandlerImpl (403)
+│   ├── ratelimit/           # RateLimiterService — sliding window, in-memory
 │   ├── service/             # UserDetailsServiceImpl
 │   └── util/                # JwtUtil — üret / parse / doğrula
+├── audit/                   # Değiştirilemez audit log sistemi
+│   ├── entity/              # AuditLog — no-setter, factory method
+│   ├── enums/               # AuditAction, AuditEntityType
+│   ├── repository/          # Yalnızca okuma/kaydetme — silme/güncelleme yok
+│   └── service/             # AuditLogService (fluent builder), AsyncAuditPersister
 ├── common/
 │   ├── exception/           # GlobalExceptionHandler, BusinessException, ResourceNotFoundException
 │   ├── response/            # ApiResponse<T> — standart response wrapper
@@ -67,9 +74,9 @@ com.portfolio
     │   ├── repository/
     │   ├── entity/
     │   └── enums/
-    └── contact/             # İletişim formu mesajları
+    └── contact/             # İletişim formu mesajları + e-posta bildirimi
         ├── controller/
-        ├── service/
+        ├── service/         # ContactService, EmailNotificationService
         ├── repository/
         ├── entity/
         └── enums/
@@ -109,6 +116,11 @@ Ana domain. `Project` aggregate root'tur.
 
 **Güncelleme semantiği (PATCH):** `null` alan = mevcut değer korunur. Boş liste `[]` = temizle. Değer verilmişse güncelle.
 
+**Validation sınırları:**
+- `tags`: en fazla 15 etiket, her biri en fazla 50 karakter
+- `materials`: en fazla 20 malzeme, her biri en fazla 100 karakter
+- `detailedStory`: en fazla 50.000 karakter
+
 ### `domain/media`
 
 Dosya yaşam döngüsünü yönetir. Binary dosya diskte (veya S3'te) durur. DB yalnızca metadata saklar.
@@ -124,6 +136,7 @@ Dosya yaşam döngüsünü yönetir. Binary dosya diskte (veya S3'te) durur. DB 
 - MIME tipi izin listesine göre kontrol edilir (jpeg, png, webp, gif)
 - Kaydedilen dosya adı UUID'dir — orijinal ad asla dosya sistemine yazılmaz
 - Path traversal: `resolveSecurePath()` normalize eder ve yolun upload dizini içinde kalmasını garantiler
+- Görsel URL'leri `APP_STORAGE_BASE_URL` env değişkeninden üretilir — production'da Railway URL'i set edilmeli
 
 ### `domain/contact`
 
@@ -131,8 +144,26 @@ Durumsuz iletişim formu. Ziyaretçi gönderir, admin okur ve durumu günceller.
 
 | Sınıf | Sorumluluk |
 |---|---|
-| `ContactService` | `sendMessage()` IP ile kaydeder, admin metodları listeler/filtreler/günceller/siler |
+| `ContactService` | `sendMessage()` IP ile kaydeder; admin metodları listeler/filtreler/günceller/siler |
 | `ContactMessage` | Durum makineli entity: `YENİ → OKUNDU → YANITLANDI` |
+| `EmailNotificationService` | Yeni mesajda async HTML e-posta gönderir; spam tespiti e-posta başlığını işaretler |
+
+**Rate limiting:** Aynı IP'den günde en fazla 3 mesaj (`RateLimiterService`).
+
+**Spam tespiti:** %80+ büyük harf, 6+ tekrar karakter veya URL içeriği → e-posta konusuna `⚠ [ŞÜPHELİ]` eklenir. Mesaj DB'ye kaydedilir, silinmez.
+
+### `audit`
+
+Değiştirilemez audit trail. Tüm admin ve public aksiyonlar loglanır.
+
+| Sınıf | Sorumluluk |
+|---|---|
+| `AuditLogService` | Fluent builder: `record(action).entity(...).ip(...).meta(...).save()` |
+| `AsyncAuditPersister` | Spring proxy için ayrı `@Component` — `@Async("auditExecutor")` doğru çalışır |
+| `AuditLog` | Setter yok, immutable. Factory method: `AuditLog.of(...)`. `createdAt` factory'de set edilir |
+| `AuditAction` | Enum: LOGIN_SUCCESS/FAILURE/BLOCKED, PROJECT_*, CONTACT_*, MEDIA_* |
+
+**Önemli:** Repository'de `delete` ve `update` metodu kasıtlı olarak yoktur — audit kayıtları değiştirilemez.
 
 ### `common`
 
@@ -155,24 +186,7 @@ Tüm yanıtlar sarılır: `{ "success": true, "data": {...} }`
 |---|---|---|
 | POST | `/api/v1/auth/login` | Admin girişi — JWT token döner |
 
-**Login isteği:**
-```json
-{ "email": "admin@portfolio.com", "password": "admin123" }
-```
-
-**Login yanıtı:**
-```json
-{
-  "success": true,
-  "data": {
-    "token": "<jwt>",
-    "tokenType": "Bearer",
-    "expiresIn": 86400,
-    "email": "admin@portfolio.com",
-    "role": "ADMIN"
-  }
-}
-```
+**Rate limiting:** 5 başarısız denemeden sonra IP 15 dakika engellenir.
 
 ### Genel Endpoint'ler (auth gerektirmez)
 
@@ -181,19 +195,19 @@ Tüm yanıtlar sarılır: `{ "success": true, "data": {...} }`
 | GET | `/api/v1/projects` | Yayınlanan projeler, sayfalı (boyut=12, tarihe göre) |
 | GET | `/api/v1/projects/featured` | Öne çıkan yayınlanan projeler |
 | GET | `/api/v1/projects/category/{category}` | Kategoriye göre, sayfalı |
-| GET | `/api/v1/projects/{slug}` | Slug ile proje detayı, görüntülenme sayısını artırır |
-| GET | `/files/{filename}` | Yüklenen dosyayı sun (sadece local storage) |
-| POST | `/api/v1/contact` | İletişim formu gönder |
+| GET | `/api/v1/projects/{slug}` | Slug ile proje detayı |
+| GET | `/files/{filename}` | Yüklenen dosyayı sun (local storage) |
+| POST | `/api/v1/contact` | İletişim formu gönder (günde 3 / IP) |
 
 ### Admin Endpoint'leri (JWT korumalı — ADMIN rolü gerekli)
 
-Token gönderimi: `Authorization: Bearer <token>`
+Token: `Authorization: Bearer <token>`
 
 | Metod | Yol | Açıklama |
 |---|---|---|
 | GET | `/api/v1/admin/projects` | Tüm projeler (her statüs), sayfalı |
 | GET | `/api/v1/admin/projects/{id}` | ID ile proje detayı |
-| POST | `/api/v1/admin/projects` | Proje oluştur (opsiyonel coverImageId, imageIds ile) |
+| POST | `/api/v1/admin/projects` | Proje oluştur |
 | PATCH | `/api/v1/admin/projects/{id}` | Kısmi güncelleme — null alanlar görmezden gelinir |
 | DELETE | `/api/v1/admin/projects/{id}` | Proje sil |
 | PATCH | `/api/v1/admin/projects/{id}/publish` | Yayınla |
@@ -203,7 +217,7 @@ Token gönderimi: `Authorization: Bearer <token>`
 | POST | `/api/v1/admin/projects/{id}/images/{mediaFileId}` | Galeriye görsel ekle |
 | DELETE | `/api/v1/admin/projects/{id}/images/{imageId}` | Galeriden görsel kaldır |
 | PUT | `/api/v1/admin/projects/{id}/images/reorder` | Galeri sırasını güncelle |
-| POST | `/api/v1/admin/media/upload` | Dosya yükle, MediaFileResponse döner |
+| POST | `/api/v1/admin/media/upload` | Dosya yükle |
 | GET | `/api/v1/admin/contact` | Tüm iletişim mesajları, sayfalı |
 | GET | `/api/v1/admin/contact/status/{status}` | Duruma göre filtrele |
 | GET | `/api/v1/admin/contact/count/new` | YENİ mesaj sayısı |
@@ -225,44 +239,37 @@ Token gönderimi: `Authorization: Bearer <token>`
 | `media_files` | Yalnızca upload metadata — binary disk/S3'te |
 | `contact_messages` | İletişim formu gönderileri, durum takibiyle |
 | `admin_users` | Admin hesapları — JWT auth aktif |
-| `comments` | Ziyaretçi yorumları — tablo hazır, entity Aşama 3'te |
+| `audit_logs` | Değiştirilemez audit trail — repository'de delete/update metodu yok |
+| `comments` | Ziyaretçi yorumları — tablo hazır, entity bekliyor |
 
-### İlişkiler
+### Migration Sırası
 
-```
-projects
-  ├── cover_image_id → media_files   (FK, ON DELETE SET NULL)
-  ├── project_images → media_files   (FK, ON DELETE RESTRICT)
-  │         └── project_id → projects (ON DELETE CASCADE)
-  ├── project_tags   → project_id   (ON DELETE CASCADE)
-  └── project_materials → project_id (ON DELETE CASCADE)
-```
+| Versiyon | Dosya | İçerik |
+|---|---|---|
+| V1 | `V1__init_schema.sql` | Tüm tablolar |
+| V2 | `V2__seed_admin_user.sql` | Placeholder — DataInitializer programatik olarak ekler |
+| V3 | `V3__add_audit_logs.sql` | `audit_logs` tablosu + indeksler |
 
-Migration'lar **Flyway** tarafından yönetilir. Hibernate `ddl-auto: validate` ile çalışır — schema'nın entity'lerle uyumunu doğrular, asla değiştirmez.
+Migration'lar **Flyway** tarafından yönetilir. Hibernate `ddl-auto: validate` ile çalışır.
 
 ---
 
 ## Önemli Teknik Kararlar
 
-### `StorageService` neden arayüz (interface)?
-
-Storage backend'lerini iş mantığına dokunmadan değiştirmek için. `LocalStorageService`, `app.storage.type=local` olduğunda aktiftir. `s3` yapılınca `@ConditionalOnProperty` ile devre dışı kalır, `S3StorageService` devreye girer. `MediaService` ve her çağıran tamamen habersizdir.
+### `StorageService` neden arayüz?
+Storage backend'lerini iş mantığına dokunmadan değiştirmek için. `app.storage.type=s3` yapılınca `LocalStorageService` devre dışı kalır, `S3StorageService` devreye girer. Hiçbir çağıran değişmez.
 
 ### `MediaFile` neden ayrı entity?
-
-Binary'yi DB'de saklamak ölçekte performans ve yedekleme felaketi olur. `MediaFile` yalnızca metadata tutar: dosyanın nerede olduğu, nasıl erişileceği, boyutları. Gerçek byte'lar dosya sisteminde (veya S3'te) durur. Ayrıca tek bir `MediaFile` birden fazla proje tarafından referans alınabilir.
+Binary'yi DB'de saklamak ölçekte performans ve yedekleme felaketidir. `MediaFile` yalnızca metadata tutar. Tek bir `MediaFile` birden fazla proje tarafından referans alınabilir.
 
 ### Güncelleme neden PATCH, PUT değil?
+`null` = mevcut değer korunsun. Boş `[]` = liste temizlensin. Değer verilmişse güncelle. `Project.applyPatch()` entity içinde zorunlu kılar.
 
-Portfolyo admini nadiren 12 alanın tamamını aynı anda günceller. PUT tüm nesnenin gönderilmesini zorunlu kılar. PATCH ile: sadece değişeni gönder. `null` = mevcut değer korunsun. Boş `[]` = liste temizlensin. Bu `Project.applyPatch()` içinde zorunlu kılınır — entity kendisini korur.
+### `@Async` neden `AsyncAuditPersister` ayrı bean'i?
+`AuditLogService.record()` içinden `this.persist()` çağrısı Spring proxy'yi atlar — `@Async` çalışmaz. Ayrı `@Component` (`AsyncAuditPersister`) Spring proxy üzerinden inject edilir, `@Async` garanti çalışır.
 
 ### `@EntityGraph` neden `FetchType.EAGER` değil?
-
-`EAGER` ihtiyaç olmasa bile her sorguda join çalıştırır. `@EntityGraph` sorgu bazlıdır: liste endpoint'leri yalnızca `coverImage` yükler. Detay endpoint'leri `coverImage + tags + materials` yükler. Galeri görselleri ayrı optimize edilmiş `JOIN FETCH` sorgusuyla gelir. Sonuç: N+1 yok, fazla veri çekimi yok.
-
-### Entity'lerde domain metodlar neden?
-
-`project.setStatus("PUBLISHED")` bir setter'dır — hiçbir fikri yoktur. `project.publish()` bir domain metodudur — yarın "en az bir görseli olmalı" kuralını hiçbir service değişikliği olmadan uygulayabilir. İş kuralları korudukları entity'ye aittir.
+`EAGER` ihtiyaç olmasa bile her sorguda join çalıştırır. `@EntityGraph` sorgu bazlıdır: liste endpoint'leri yalnızca `coverImage` yükler, detay endpoint'leri tüm ilişkileri yükler. N+1 yok, fazla veri çekimi yok.
 
 ---
 
@@ -285,17 +292,42 @@ docker-compose up -d
 ### 2. Backend'i Çalıştır
 
 ```bash
-# Windows — birden fazla JDK varsa JAVA_HOME'u açıkça belirt
 set JAVA_HOME=C:\Program Files\Java\jdk-17
 cd apps/api
 mvn spring-boot:run
 ```
 
-Ya da IntelliJ'den `PortfolioApplication.java`'yı `dev` profiliyle çalıştır.
+Ya da IntelliJ'den `PortfolioApplication.java`'yı çalıştır.
 
-**IntelliJ run config'de gerekli VM parametresi:**
+**IntelliJ run config — Environment variables:**
+```
+APP_JWT_SECRET=<min 32 karakter>
+APP_ADMIN_EMAIL=admin@portfolio.com
+APP_ADMIN_PASSWORD=<şifre>
+MAIL_USERNAME=interiorarcstudio@gmail.com
+MAIL_APP_PASSWORD=<16 haneli Gmail Uygulama Şifresi>
+APP_STORAGE_BASE_URL=http://localhost:8080/files
+```
+
+Gmail Uygulama Şifresi: Google Hesabı → Güvenlik → 2 Adımlı Doğrulama → Uygulama Şifresi
+
+**VM parametresi:**
 ```
 -Dspring.profiles.active=dev
+```
+
+**Production env değişkenleri (Railway):**
+```
+DATABASE_URL=<Railway postgres URL>
+DATABASE_USERNAME=<db kullanıcı>
+DATABASE_PASSWORD=<db şifre>
+APP_JWT_SECRET=<min 32 karakter>
+APP_ADMIN_EMAIL=<admin email>
+APP_ADMIN_PASSWORD=<güçlü şifre>
+MAIL_USERNAME=interiorarcstudio@gmail.com
+MAIL_APP_PASSWORD=<16 haneli Gmail Uygulama Şifresi>
+APP_STORAGE_BASE_URL=https://<railway-app>.railway.app/files
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
 
 ### 3. Doğrula
@@ -312,28 +344,29 @@ Ya da IntelliJ'den `PortfolioApplication.java`'yı `dev` profiliyle çalıştır
 
 ### Java Versiyonu Notu
 
-Birden fazla JDK varsa Maven mutlaka JDK 17 kullanmalı. OpenJDK 25 Lombok `TypeTag::UNKNOWN` hatasına yol açar. `JAVA_HOME`'u ayarlayın ya da sistem ortam değişkenlerine kalıcı olarak ekleyin.
+Birden fazla JDK varsa Maven mutlaka JDK 17 kullanmalı. OpenJDK 25 Lombok `TypeTag::UNKNOWN` hatasına yol açar.
 
 ---
 
 ## Geliştirme Yol Haritası
 
-### Aşama 2 — Kimlik Doğrulama & Frontend ✓ Tamamlandı
+### ✓ Tamamlandı
 
-- [x] Tüm `/admin/**` endpoint'leri için JWT kimlik doğrulama
-- [x] `admin_users` tablo entegrasyonu
+- [x] JWT kimlik doğrulama — tüm `/admin/**` endpoint'leri
+- [x] React/Next.js frontend — genel portfolyo sitesi + admin paneli
+- [x] Rate limiting: iletişim formu günde 3/IP, giriş 5 başarısız → 15 dak blok
+- [x] Audit log sistemi — async, değiştirilemez, `audit_logs` tablosu (V3 migration)
+- [x] İletişim formu e-posta bildirimi — async, HTML şablonu, spam tespiti
+- [x] CORS: `CORS_ALLOWED_ORIGINS` env değişkeni ile yapılandırılır
+- [x] Storage base URL: `APP_STORAGE_BASE_URL` env değişkeni (production'da Railway URL)
+- [x] Input validation: etiket/malzeme item-level `@Size`, `detailedStory` 50k karakter sınırı
+- [x] Güvenlik başlıkları: Spring Security default'ları (X-Frame-Options, X-Content-Type-Options)
+- [x] ISR: `revalidate = 300` + admin mutasyonlarında `POST /api/revalidate` ile anında güncelleme
 - [x] Üretimde Swagger kapalı
-- [x] React/Next.js frontend — genel portfolyo sitesi + admin paneli (tam işlevsel)
-- [ ] `S3StorageService` implementasyonu — `app.storage.type=s3` ile geçiş
-- [ ] İletişim formunda rate limiting (Bucket4j)
 
-### Aşama 3 — İçerik Özellikleri
+### Bekleyen
 
+- [ ] `S3StorageService` — `app.storage.type=s3` ile geçiş
+- [ ] `MediaController` audit log'a bağlansın (MEDIA_UPLOADED / MEDIA_DELETED enum'da var, controller'da yok)
 - [ ] Yorum sistemi — `comments` tablosu schema'da var, entity bekliyor
-- [ ] Yükleme sırasında MIME type magic bytes doğrulaması
-
-### Aşama 4 — Gözlemlenebilirlik
-
-- [ ] Micrometer + Prometheus metrikleri
-- [ ] Üretim için yapılandırılmış JSON loglama
-- [ ] İstek izleme başlıkları
+- [ ] Üretim için yapılandırılmış JSON loglama (Logstash encoder)
