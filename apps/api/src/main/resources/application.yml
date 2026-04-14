@@ -49,7 +49,7 @@ springdoc:
 
 # Uygulama bazlı config
 resend:
-  api-key: ${RESEND_API_KEY}
+  api-key: ${RESEND_API_KEY:not-configured}
 
 app:
   storage:
