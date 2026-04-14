@@ -35,7 +35,11 @@ public class EmailNotificationService {
             DateTimeFormatter.ofPattern("d MMMM yyyy, HH:mm")
                     .withLocale(new java.util.Locale("tr", "TR"));
 
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient;
+
+    public EmailNotificationService(RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder.build();
+    }
 
     @Async("auditExecutor")
     public void sendContactNotification(SendContactMessageRequest request) {
