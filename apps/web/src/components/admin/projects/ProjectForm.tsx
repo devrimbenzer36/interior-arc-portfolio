@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import ImageUploader, { type UploadedMedia } from "@/components/admin/ui/ImageUploader";
-import type { ProjectCategory, CreateProjectRequest, UpdateProjectRequest } from "@/types/api";
+import type { ProjectCategory } from "@/types/api";
 
 // Türkçe karakter desteğiyle URL-safe slug üret
 function toSlug(value: string): string {
@@ -164,7 +164,7 @@ export default function ProjectForm({ initialValues, onSubmit, submitLabel }: Pr
         />
         {errors.slug
           ? <p className="font-sans text-xs text-red-600">{errors.slug}</p>
-          : <p className="font-sans text-xs text-muted">URL'de kullanılır. Otomatik türetilir, düzenleyebilirsiniz.</p>
+          : <p className="font-sans text-xs text-muted">URL&apos;de kullanılır. Otomatik türetilir, düzenleyebilirsiniz.</p>
         }
       </div>
 

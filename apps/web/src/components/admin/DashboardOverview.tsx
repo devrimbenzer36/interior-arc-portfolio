@@ -56,7 +56,7 @@ export default function DashboardOverview() {
       {/* İstatistik kartları */}
       {apiError ? (
         <p className="font-sans text-sm text-muted">
-          API'ye ulaşılamıyor. Backend çalışıyor mu?
+          API&apos;ye ulaşılamıyor. Backend çalışıyor mu?
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-4 max-w-sm">

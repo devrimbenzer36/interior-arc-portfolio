@@ -72,7 +72,7 @@ export default function Lightbox({ images, initialIndex, onClose }: Props) {
     const dx = e.changedTouches[0].clientX - touchX.current;
     const dy = e.changedTouches[0].clientY - touchY.current;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 48) {
-      dx < 0 ? next() : prev();
+      if (dx < 0) { next(); } else { prev(); }
     }
   }
 

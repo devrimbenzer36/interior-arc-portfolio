@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ProjectForm, { type ProjectFormPayload } from "@/components/admin/projects/ProjectForm";
-import { adminCreateProject, adminSetCoverImage } from "@/lib/api/projects";
+import { adminCreateProject } from "@/lib/api/projects";
 import { revalidateProjectCache } from "@/lib/revalidate";
 
 export default function NewProjectPage() {
