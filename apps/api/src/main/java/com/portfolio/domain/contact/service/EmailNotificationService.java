@@ -43,6 +43,7 @@ public class EmailNotificationService {
 
     @Async("auditExecutor")
     public void sendContactNotification(SendContactMessageRequest request) {
+        log.warn("[EMAIL] sendContactNotification started for: {}", request.getEmail());
         try {
             List<String> recipients = Arrays.stream(recipientsRaw.split(","))
                     .map(String::trim)
@@ -69,10 +70,10 @@ public class EmailNotificationService {
                     .retrieve()
                     .toBodilessEntity();
 
-            log.info("Contact notification sent via Resend to {} for sender {}", recipients, request.getEmail());
+            log.warn("[EMAIL] Resend API call succeeded for: {}", request.getEmail());
 
         } catch (Exception e) {
-            log.error("Contact notification failed for {}: {}", request.getEmail(), e.getMessage());
+            log.warn("[EMAIL] Resend API call FAILED for {}: {} — {}", request.getEmail(), e.getClass().getSimpleName(), e.getMessage());
         }
     }
 
