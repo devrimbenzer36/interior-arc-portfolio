@@ -74,7 +74,7 @@ app:
     initial-password: ${APP_ADMIN_PASSWORD}
   notification:
     # Contact form bildirimleri bu adreslere gönderilir (virgülle ayrılmış)
-    recipients: elifdavulcu8@gmail.com,devrimbenzer@gmail.com
+    recipients: devrimbenzer@gmail.com
   cors:
     # Dev: virgülle ayrılmış localhost adresler
     # Prod: CORS_ALLOWED_ORIGINS env var'ı set et (örn: https://elifbenzer.com,https://www.elifbenzer.com)
