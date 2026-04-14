@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 
+
 /*
  * Inter: gövde metni, UI, admin panel
  * Cormorant Garamond: başlıklar, hero alanları — editorial, lüks his
