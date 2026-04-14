@@ -48,6 +48,9 @@ springdoc:
     operations-sorter: method
 
 # Uygulama bazlı config
+resend:
+  api-key: ${RESEND_API_KEY}
+
 app:
   storage:
     type: local                             # local | s3 (Phase 2)
