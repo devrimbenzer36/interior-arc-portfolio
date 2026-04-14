@@ -67,7 +67,7 @@ public class EmailNotificationService {
                     : "✉ Yeni Mesaj — " + senderLabel(request);
 
             Map<String, Object> body = Map.of(
-                    "from", "Interior Arc Studio <devrimbenzer@gmail.com>",
+                    "from", "Interior Arc Studio <onboarding@resend.dev>",
                     "to", recipients,
                     "subject", subject,
                     "html", buildHtml(request)
