@@ -2,6 +2,8 @@ import Nav from "@/components/public/Nav";
 import ProjectCard from "@/components/public/ProjectCard";
 import { getPublishedProjects } from "@/lib/api/projects";
 
+export const revalidate = 300;
+
 export const metadata = {
   title: "Projeler",
   description: "Tüm interior design projelerimiz.",

@@ -15,15 +15,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * Dış bağımlılık yok — ConcurrentHashMap + synchronized Deque ile çalışır.
  * Uygulama yeniden başlarsa sayaçlar sıfırlanır (portfolio için yeterli).
  *
- * Contact  : IP başına 5 istek / 15 dakika
+ * Contact  : IP başına 3 istek / 24 saat
  * Login    : IP başına 5 başarısız deneme / 15 dakika → blok
  */
 @Slf4j
 @Component
 public class RateLimiterService {
 
-    private static final int    CONTACT_MAX    = 5;
-    private static final Duration CONTACT_WINDOW = Duration.ofMinutes(15);
+    private static final int      CONTACT_MAX    = 3;
+    private static final Duration CONTACT_WINDOW = Duration.ofHours(24);
 
     private static final int    LOGIN_MAX      = 5;
     private static final Duration LOGIN_WINDOW  = Duration.ofMinutes(15);

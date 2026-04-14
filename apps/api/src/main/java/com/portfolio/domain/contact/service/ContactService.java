@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ContactService {
 
     private final ContactMessageRepository contactMessageRepository;
+    private final EmailNotificationService emailNotificationService;
 
     // ── Public ────────────────────────────────────────────────────────────
 
@@ -34,6 +35,9 @@ public class ContactService {
         );
         contactMessageRepository.save(message);
         log.info("Contact message received from: {}", request.getEmail());
+
+        // Mesaj DB'ye kaydedildikten sonra async bildirim gönder
+        emailNotificationService.sendContactNotification(request);
     }
 
     // ── Admin ─────────────────────────────────────────────────────────────

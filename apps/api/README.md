@@ -133,6 +133,18 @@ Stateless contact form. Visitors submit, admin reads and updates status.
 |---|---|
 | `ContactService` | `sendMessage()` saves with IP, admin methods list/filter/update/delete |
 | `ContactMessage` | Entity with status machine: `NEW → READ → REPLIED` |
+| `EmailNotificationService` | Async HTML email to configured recipients on new submission. Spam detection flags suspicious messages in subject line. |
+
+### `audit`
+
+Immutable audit trail for all admin and public actions.
+
+| Class | Responsibility |
+|---|---|
+| `AuditLogService` | Fluent builder: `record(action).entity(...).ip(...).meta(...).save()` |
+| `AsyncAuditPersister` | Separate `@Component` to ensure Spring proxy — `@Async("auditExecutor")` fires correctly |
+| `AuditLog` | Immutable entity. No setters. Factory method `AuditLog.of(...)`. |
+| `AuditAction` | Enum: LOGIN_SUCCESS/FAILURE/BLOCKED, PROJECT_*, CONTACT_*, MEDIA_* |
 
 ### `common`
 
@@ -225,6 +237,7 @@ Send token as: `Authorization: Bearer <token>`
 | `media_files` | Upload metadata only — binary lives on disk/S3 |
 | `contact_messages` | Contact form submissions with status tracking |
 | `admin_users` | Admin accounts — JWT auth active |
+| `audit_logs` | Immutable audit trail — no delete/update methods on repository |
 | `comments` | Visitor comments — table ready, entity in Phase 3 |
 
 ### Key Relationships
@@ -293,9 +306,35 @@ mvn spring-boot:run
 
 Or run `PortfolioApplication.java` directly from IntelliJ with the `dev` profile active.
 
-**VM option required in IntelliJ run config:**
+**Environment variables — IntelliJ run config (dev):**
+```
+APP_JWT_SECRET=<min 32 chars — e.g. openssl rand -base64 48>
+APP_ADMIN_EMAIL=admin@portfolio.com
+APP_ADMIN_PASSWORD=<strong password>
+MAIL_USERNAME=interiorarcstudio@gmail.com
+MAIL_APP_PASSWORD=<16-digit Gmail App Password>
+APP_STORAGE_BASE_URL=http://localhost:8080/files
+```
+
+Gmail App Password: Google Account → Security → 2-Step Verification → App Passwords
+
+**VM option:**
 ```
 -Dspring.profiles.active=dev
+```
+
+**Production env vars (Railway):**
+```
+DATABASE_URL=<Railway postgres URL>
+DATABASE_USERNAME=<db user>
+DATABASE_PASSWORD=<db password>
+APP_JWT_SECRET=<min 32 chars>
+APP_ADMIN_EMAIL=<admin email>
+APP_ADMIN_PASSWORD=<strong password>
+MAIL_USERNAME=interiorarcstudio@gmail.com
+MAIL_APP_PASSWORD=<16-digit Gmail App Password>
+APP_STORAGE_BASE_URL=https://<your-railway-app>.railway.app/files
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
 
 ### 3. Verify
@@ -318,22 +357,23 @@ If you have multiple JDKs, Maven must use JDK 17. OpenJDK 25 causes a Lombok `Ty
 
 ## Roadmap
 
-### Phase 2 — Auth & Frontend ✓ Complete
+### ✓ Complete
 
 - [x] JWT authentication for all `/admin/**` endpoints
-- [x] `admin_users` table integration
+- [x] React/Next.js frontend — public portfolio site + admin panel
+- [x] Rate limiting: contact form 3/day per IP, login 5 failures/15min → block
+- [x] Audit log system — async, immutable, `audit_logs` table (V3 migration)
+- [x] SMTP email notification on contact form submit (async, HTML, spam detection)
+- [x] CORS origin configured via `CORS_ALLOWED_ORIGINS` env var
+- [x] Storage base URL configured via `APP_STORAGE_BASE_URL` env var
+- [x] Input validation: tag/material item-level `@Size`, `detailedStory` capped at 50k chars
+- [x] Security headers via Spring Security defaults (X-Frame-Options, X-Content-Type-Options)
 - [x] Swagger disabled in production
-- [x] React/Next.js frontend — public portfolio site + admin panel (fully functional)
+- [x] ISR revalidation: `revalidate = 300` + on-demand via `POST /api/revalidate` on admin mutations
+
+### Pending
+
 - [ ] `S3StorageService` — toggle with `app.storage.type=s3`
-- [ ] Rate limiting on contact form (Bucket4j)
-
-### Phase 3 — Content Features
-
-- [ ] Comment system — `comments` table is in schema, entity pending
-- [ ] MIME type magic bytes validation (currently trusts Content-Type header)
-
-### Phase 4 — Observability
-
-- [ ] Micrometer + Prometheus metrics
-- [ ] Structured JSON logging for production
-- [ ] Request tracing headers
+- [ ] `MediaController` wired to audit log (MEDIA_UPLOADED / MEDIA_DELETED actions defined, not connected)
+- [ ] Comment system — `comments` table in schema, entity pending
+- [ ] Structured JSON logging for production (Logstash encoder)

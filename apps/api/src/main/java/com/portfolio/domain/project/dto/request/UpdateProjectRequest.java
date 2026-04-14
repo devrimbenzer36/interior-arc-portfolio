@@ -37,6 +37,7 @@ public class UpdateProjectRequest {
     @Size(max = 500, message = "Short description must not exceed 500 characters")
     private String shortDesc;
 
+    @Size(max = 50000, message = "Detailed story must not exceed 50,000 characters")
     private String detailedStory;
 
     private ProjectCategory category;
@@ -58,7 +59,9 @@ public class UpdateProjectRequest {
     @Size(max = 100, message = "Budget range must not exceed 100 characters")
     private String budgetRange;
 
-    private List<String> tags;
+    @Size(max = 15, message = "At most 15 tags allowed")
+    private List<@Size(max = 50, message = "Each tag must not exceed 50 characters") String> tags;
 
-    private List<String> materials;
+    @Size(max = 20, message = "At most 20 materials allowed")
+    private List<@Size(max = 100, message = "Each material must not exceed 100 characters") String> materials;
 }

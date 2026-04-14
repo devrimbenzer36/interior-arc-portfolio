@@ -48,6 +48,7 @@ interface FormValues {
   name: string;
   email: string;
   phone: string;
+  subject: string;
   message: string;
 }
 
@@ -61,6 +62,7 @@ export default function ContactForm() {
     name: "",
     email: "",
     phone: "",
+    subject: "",
     message: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -103,7 +105,8 @@ export default function ContactForm() {
       await sendContactMessage({
         fullName: values.name.trim(),
         email:    values.email.trim(),
-        phone:    values.phone.trim() || undefined,
+        phone:    values.phone.trim()    || undefined,
+        subject:  values.subject.trim() || undefined,
         message:  values.message.trim(),
       });
       setStatus("success");
@@ -160,17 +163,29 @@ export default function ContactForm() {
         </Field>
       </div>
 
-      {/* Telefon */}
-      <Field label="Telefon" hint="İsteğe bağlı">
-        <input
-          type="tel"
-          value={values.phone}
-          onChange={(e) => set("phone", e.target.value)}
-          placeholder="+90 5xx xxx xx xx"
-          autoComplete="tel"
-          className={inputCls}
-        />
-      </Field>
+      {/* Telefon — Konu yan yana */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+        <Field label="Telefon" hint="İsteğe bağlı">
+          <input
+            type="tel"
+            value={values.phone}
+            onChange={(e) => set("phone", e.target.value)}
+            placeholder="+90 5xx xxx xx xx"
+            autoComplete="tel"
+            className={inputCls}
+          />
+        </Field>
+
+        <Field label="Konu" hint="İsteğe bağlı">
+          <input
+            type="text"
+            value={values.subject}
+            onChange={(e) => set("subject", e.target.value)}
+            placeholder="Projenizin konusu"
+            className={inputCls}
+          />
+        </Field>
+      </div>
 
       {/* Mesaj */}
       <Field label="Mesaj" required error={errors.message}>

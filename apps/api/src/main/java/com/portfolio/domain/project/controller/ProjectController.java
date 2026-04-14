@@ -1,5 +1,8 @@
 package com.portfolio.domain.project.controller;
 
+import com.portfolio.audit.enums.AuditAction;
+import com.portfolio.audit.enums.AuditEntityType;
+import com.portfolio.audit.service.AuditLogService;
 import com.portfolio.common.response.ApiResponse;
 import com.portfolio.domain.project.dto.request.CreateProjectRequest;
 import com.portfolio.domain.project.dto.request.ReorderImagesRequest;
@@ -11,6 +14,7 @@ import com.portfolio.domain.project.enums.ProjectCategory;
 import com.portfolio.domain.project.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +23,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,9 +35,10 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final AuditLogService auditLog;
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PUBLIC — Ziyaretçi endpoint'leri
+    // PUBLIC — Ziyaretçi endpoint'leri (audit log gerekmez)
     // ═══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/api/v1/projects")
@@ -71,8 +78,6 @@ public class ProjectController {
 
     // ═══════════════════════════════════════════════════════════════════════
     // ADMIN — Proje yönetimi
-    // Phase 1: auth yok, tüm /admin/** endpoint'leri açık
-    // Phase 2: SecurityConfig'de JWT korumasına alınacak
     // ═══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/api/v1/admin/projects")
@@ -95,9 +100,19 @@ public class ProjectController {
     @PostMapping("/api/v1/admin/projects")
     @Operation(summary = "[Admin] Create project")
     public ResponseEntity<ApiResponse<ProjectDetailResponse>> createProject(
-            @Valid @RequestBody CreateProjectRequest request
+            @Valid @RequestBody CreateProjectRequest request,
+            HttpServletRequest httpRequest
     ) {
         ProjectDetailResponse response = projectService.createProject(request);
+
+        auditLog.record(AuditAction.PROJECT_CREATED)
+                .entity(AuditEntityType.PROJECT, response.getId())
+                .actor(currentAdminEmail())
+                .ip(httpRequest.getRemoteAddr())
+                .meta("title", response.getTitle())
+                .meta("category", response.getCategory())
+                .save();
+
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response, "Project created"));
     }
 
@@ -105,28 +120,77 @@ public class ProjectController {
     @Operation(summary = "[Admin] Partial update project (PATCH — null fields are ignored)")
     public ResponseEntity<ApiResponse<ProjectDetailResponse>> updateProject(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateProjectRequest request
+            @Valid @RequestBody UpdateProjectRequest request,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(projectService.updateProject(id, request), "Project updated"));
+        ProjectDetailResponse response = projectService.updateProject(id, request);
+
+        auditLog.record(AuditAction.PROJECT_UPDATED)
+                .entity(AuditEntityType.PROJECT, id)
+                .actor(currentAdminEmail())
+                .ip(httpRequest.getRemoteAddr())
+                .meta("title", response.getTitle())
+                .save();
+
+        return ResponseEntity.ok(ApiResponse.ok(response, "Project updated"));
     }
 
     @DeleteMapping("/api/v1/admin/projects/{id}")
     @Operation(summary = "[Admin] Delete project")
-    public ResponseEntity<ApiResponse<Void>> deleteProject(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteProject(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest
+    ) {
+        // Silmeden önce başlığı al (sildikten sonra sorgulanamaz)
+        ProjectDetailResponse project = projectService.getProjectById(id);
+        String title = project.getTitle();
+
         projectService.deleteProject(id);
+
+        auditLog.record(AuditAction.PROJECT_DELETED)
+                .entity(AuditEntityType.PROJECT, id)
+                .actor(currentAdminEmail())
+                .ip(httpRequest.getRemoteAddr())
+                .meta("title", title)
+                .save();
+
         return ResponseEntity.ok(ApiResponse.ok("Project deleted"));
     }
 
     @PatchMapping("/api/v1/admin/projects/{id}/publish")
     @Operation(summary = "[Admin] Publish project")
-    public ResponseEntity<ApiResponse<ProjectDetailResponse>> publishProject(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(projectService.publishProject(id), "Project published"));
+    public ResponseEntity<ApiResponse<ProjectDetailResponse>> publishProject(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest
+    ) {
+        ProjectDetailResponse response = projectService.publishProject(id);
+
+        auditLog.record(AuditAction.PROJECT_PUBLISHED)
+                .entity(AuditEntityType.PROJECT, id)
+                .actor(currentAdminEmail())
+                .ip(httpRequest.getRemoteAddr())
+                .meta("title", response.getTitle())
+                .save();
+
+        return ResponseEntity.ok(ApiResponse.ok(response, "Project published"));
     }
 
     @PatchMapping("/api/v1/admin/projects/{id}/unpublish")
     @Operation(summary = "[Admin] Unpublish project")
-    public ResponseEntity<ApiResponse<ProjectDetailResponse>> unpublishProject(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(projectService.unpublishProject(id), "Project unpublished"));
+    public ResponseEntity<ApiResponse<ProjectDetailResponse>> unpublishProject(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest
+    ) {
+        ProjectDetailResponse response = projectService.unpublishProject(id);
+
+        auditLog.record(AuditAction.PROJECT_UNPUBLISHED)
+                .entity(AuditEntityType.PROJECT, id)
+                .actor(currentAdminEmail())
+                .ip(httpRequest.getRemoteAddr())
+                .meta("title", response.getTitle())
+                .save();
+
+        return ResponseEntity.ok(ApiResponse.ok(response, "Project unpublished"));
     }
 
     @PatchMapping("/api/v1/admin/projects/{id}/featured")
@@ -179,5 +243,12 @@ public class ProjectController {
     ) {
         projectService.reorderImages(id, request);
         return ResponseEntity.ok(ApiResponse.ok("Images reordered"));
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────
+
+    private String currentAdminEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null) ? auth.getName() : null;
     }
 }
