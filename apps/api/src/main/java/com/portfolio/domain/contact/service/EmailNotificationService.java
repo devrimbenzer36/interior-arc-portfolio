@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 /**
  * Contact form gönderimlerini Resend HTTP API ile iletir.
  * SMTP yerine HTTP (port 443) — Railway'de port kısıtlaması yok.
+ * cache-bust: 2026-04-15
  */
 @Slf4j
 @Service
